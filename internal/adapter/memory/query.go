@@ -15,6 +15,8 @@ type SampleQuery struct {
 }
 
 func (s *Store) QuerySamples(ctx context.Context, q SampleQuery) ([]metric.Sample, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	out := []metric.Sample{}
 	for _, v := range s.samples {
 		if q.MetricID != "" && q.MetricID != v.MetricID {
@@ -29,7 +31,7 @@ func (s *Store) QuerySamples(ctx context.Context, q SampleQuery) ([]metric.Sampl
 		if !q.To.IsZero() && v.Timestamp.After(q.To) {
 			continue
 		}
-		out = append(out, v)
+		out = append(out, cloneSample(v))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp.Before(out[j].Timestamp) })
 	if q.Limit > 0 && len(out) > q.Limit {

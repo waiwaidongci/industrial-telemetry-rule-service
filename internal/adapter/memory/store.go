@@ -119,14 +119,16 @@ func (s *Store) RecordSample(ctx context.Context, v metric.Sample) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.samples = append(s.samples, v)
+	s.samples = append(s.samples, cloneSample(v))
 	return nil
 }
 func (s *Store) Samples(ctx context.Context, id string, from, to time.Time) ([]metric.Sample, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	out := []metric.Sample{}
 	for _, v := range s.samples {
 		if v.MetricID == id && !v.Timestamp.Before(from) && !v.Timestamp.After(to) {
-			out = append(out, v)
+			out = append(out, cloneSample(v))
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp.Before(out[j].Timestamp) })

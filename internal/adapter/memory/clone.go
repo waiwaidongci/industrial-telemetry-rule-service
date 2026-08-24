@@ -23,7 +23,10 @@ func cloneMetric(v metric.Definition) metric.Definition {
 	v.Tags = append([]string(nil), v.Tags...)
 	return v
 }
-func cloneSample(v metric.Sample) metric.Sample   { return v }
+func cloneSample(v metric.Sample) metric.Sample {
+	v.Tags = cloneTags(v.Tags)
+	return v
+}
 func cloneRule(v rule.Definition) rule.Definition { return v }
 func cloneEvent(v event.Event) event.Event        { v.Labels = cloneTags(v.Labels); return v }
 func cloneSubscription(v subscription.Subscription) subscription.Subscription {

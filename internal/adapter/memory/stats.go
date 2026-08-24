@@ -21,6 +21,8 @@ func (s *Store) Stats(ctx context.Context) Stats {
 	return Stats{Samples: len(s.samples), Sources: len(s.sources), Metrics: len(s.metrics), Rules: len(s.rules), Events: len(s.events), UpdatedAt: time.Now().UTC()}
 }
 func (s *Store) Latest(ctx context.Context, metricID string) (metric.Sample, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	var value metric.Sample
 	found := false
 	for _, item := range s.samples {
@@ -29,12 +31,15 @@ func (s *Store) Latest(ctx context.Context, metricID string) (metric.Sample, boo
 			found = true
 		}
 	}
+	if found {
+		value = cloneSample(value)
+	}
 	return value, found
 }
 func (s *Store) ClearSamples(ctx context.Context, before time.Time) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	kept := s.samples[:0]
+	kept := make([]metric.Sample, 0, len(s.samples))
 	removed := 0
 	for _, item := range s.samples {
 		if item.Timestamp.Before(before) {
