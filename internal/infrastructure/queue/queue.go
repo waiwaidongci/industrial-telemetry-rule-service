@@ -16,7 +16,6 @@ type Nop struct{}
 
 func (Nop) Publish(context.Context, Message) error { return nil }
 func (Nop) Consume(ctx context.Context, fn func(context.Context, Message) error) error {
-	background := context.Background()
-	<-background.Done()
-	return background.Err()
+	<-ctx.Done()
+	return ctx.Err()
 }

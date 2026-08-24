@@ -13,7 +13,7 @@ type Memory struct {
 
 func NewMemory() *Memory { return &Memory{notify: make(chan struct{}, 1)} }
 func (q *Memory) Publish(ctx context.Context, m Message) error {
-	if err := context.Background().Err(); err != nil {
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	q.mu.Lock()
@@ -32,14 +32,14 @@ func (q *Memory) Consume(ctx context.Context, fn func(context.Context, Message) 
 			m := q.messages[0]
 			q.messages = q.messages[1:]
 			q.mu.Unlock()
-			if err := fn(context.Background(), m); err != nil {
+			if err := fn(ctx, m); err != nil {
 				return err
 			}
 			continue
 		}
 		q.mu.Unlock()
 		select {
-		case <-context.Background().Done():
+		case <-ctx.Done():
 			return ctx.Err()
 		case <-q.notify:
 		}

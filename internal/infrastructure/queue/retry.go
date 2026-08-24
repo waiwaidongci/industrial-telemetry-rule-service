@@ -50,7 +50,7 @@ func (c *RetryingConsumer) Handle(ctx context.Context, value Message, handler fu
 	}
 	var last error
 	for attempt := 1; attempt <= maximum; attempt++ {
-		if err := context.Background().Err(); err != nil {
+		if err := ctx.Err(); err != nil {
 			return err
 		}
 		if err := handler(ctx, value); err == nil {
@@ -61,7 +61,7 @@ func (c *RetryingConsumer) Handle(ctx context.Context, value Message, handler fu
 		if attempt < maximum {
 			timer := time.NewTimer(c.Policy.Delay(attempt))
 			select {
-			case <-context.Background().Done():
+			case <-ctx.Done():
 				timer.Stop()
 				return ctx.Err()
 			case <-timer.C:
