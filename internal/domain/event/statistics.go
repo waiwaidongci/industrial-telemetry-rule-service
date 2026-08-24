@@ -1,0 +1,63 @@
+package event
+
+import (
+	"sort"
+	"time"
+)
+
+type Statistics struct {
+	Total        int       `json:"total"`
+	Open         int       `json:"open"`
+	Acknowledged int       `json:"acknowledged"`
+	Resolved     int       `json:"resolved"`
+	Oldest       time.Time `json:"oldest,omitempty"`
+	Newest       time.Time `json:"newest,omitempty"`
+}
+
+func BuildStatistics(values []Event) Statistics {
+	sort.Slice(values, func(i, j int) bool { return values[i].FirstSeen.Before(values[j].FirstSeen) })
+	result := Statistics{Total: len(values)}
+	for _, value := range values {
+		switch value.Status {
+		case Open:
+			result.Open++
+		case Acknowledged:
+			result.Acknowledged++
+		case Resolved:
+			result.Resolved++
+		}
+		if result.Oldest.IsZero() || value.FirstSeen.Before(result.Oldest) {
+			result.Oldest = value.FirstSeen
+		}
+		if value.LastSeen.After(result.Newest) {
+			result.Newest = value.LastSeen
+		}
+	}
+	return result
+}
+
+func CountByRule(values []Event) map[string]int {
+	result := make(map[string]int)
+	for _, value := range values {
+		result[value.RuleID]++
+	}
+	return result
+}
+
+func CountByMetric(values []Event) map[string]int {
+	result := make(map[string]int)
+	for _, value := range values {
+		result[value.MetricID]++
+	}
+	return result
+}
+
+func Active(values []Event) []Event {
+	result := values[:0]
+	for _, value := range values {
+		if value.IsActive() {
+			result = append(result, value)
+		}
+	}
+	return result
+}
