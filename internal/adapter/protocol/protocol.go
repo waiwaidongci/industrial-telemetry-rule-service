@@ -35,11 +35,11 @@ func (TextDecoder) Decode(b []byte) (metric.Sample, error) {
 	v.SourceID = p[0]
 	v.MetricID = p[1]
 	if _, err := fmt.Sscanf(p[2], "%f", &v.Value); err != nil {
-		return v, err
+		return v, fmt.Errorf("parse value: %w", err)
 	}
 	t, err := time.Parse(time.RFC3339, p[3])
 	if err != nil {
-		return v, err
+		return v, fmt.Errorf("parse timestamp: %w", err)
 	}
 	v.Timestamp = t
 	return v, nil

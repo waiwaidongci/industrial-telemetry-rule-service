@@ -26,7 +26,7 @@ func EncodeSample(v metric.Sample) ([]byte, error) { return json.Marshal(v) }
 func DecodeSample(body []byte) (metric.Sample, error) {
 	var v metric.Sample
 	if err := json.Unmarshal(body, &v); err != nil {
-		return v, err
+		return v, fmt.Errorf("decode sample: %w", err)
 	}
 	return v, nil
 }

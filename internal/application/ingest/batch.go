@@ -7,9 +7,9 @@ import (
 )
 
 type BatchResult struct {
-	Accepted int      `json:"accepted"`
-	Rejected int      `json:"rejected"`
-	Errors   []string `json:"errors,omitempty"`
+	Accepted int           `json:"accepted"`
+	Rejected int           `json:"rejected"`
+	Errors   []BatchError  `json:"errors,omitempty"`
 }
 
 func (s *Service) IngestBatch(ctx context.Context, values []metric.Sample) (BatchResult, error) {
@@ -18,11 +18,11 @@ func (s *Service) IngestBatch(ctx context.Context, values []metric.Sample) (Batc
 		value = Normalize(value)
 		if err := value.Validate(); err != nil {
 			result.Rejected++
-			result.Errors = append(result.Errors, fmt.Sprintf("%d: %v", i, err))
+			result.Errors = append(result.Errors, BatchError{Index: i, Error: err.Error()})
 			continue
 		}
 		if err := s.repo.Record(ctx, value); err != nil {
-				return result, fmt.Errorf("record batch item %d: %v", i, err)
+				return result, fmt.Errorf("record batch item %d: %w", i, err)
 		}
 		result.Accepted++
 	}

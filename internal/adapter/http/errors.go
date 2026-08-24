@@ -5,6 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+
+	"github.com/example/telemetry-rule-service/internal/adapter/protocol"
+	"github.com/example/telemetry-rule-service/internal/application/ingest"
 )
 
 type APIError struct {
@@ -20,6 +23,12 @@ func classify(err error) APIError {
 	}
 	if errors.Is(err, contextCanceled{}) {
 		return APIError{Code: "cancelled", Message: err.Error(), Status: 499}
+	}
+	if errors.Is(err, protocol.ErrUnsupportedContentType) {
+		return APIError{Code: "unsupported_content_type", Message: err.Error(), Status: 415}
+	}
+	if errors.Is(err, ingest.ErrDuplicateSample) {
+		return APIError{Code: "duplicate_sample", Message: err.Error(), Status: 409}
 	}
 	return APIError{Code: "invalid_request", Message: err.Error(), Status: 400}
 }

@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	protocolTextDecoder "github.com/example/telemetry-rule-service/internal/adapter/protocol"
+	protocol "github.com/example/telemetry-rule-service/internal/adapter/protocol"
 	"github.com/example/telemetry-rule-service/internal/application/events"
 	"github.com/example/telemetry-rule-service/internal/application/ingest"
 	"github.com/example/telemetry-rule-service/internal/application/rules"
@@ -32,12 +32,13 @@ type Server struct {
 	evaluate      *rules.Service
 	events        *events.Service
 	subscriptions *subscriptions.Service
+	decoders      *protocol.Registry
 	logger        *slog.Logger
 	requests      atomic.Uint64
 }
 
 func NewServer(src source.Repository, met metric.Repository, rs rule.Repository, es *events.Service, ss *subscriptions.Service, ig *ingest.Service, ev *rules.Service, l *slog.Logger) *Server {
-	return &Server{sources: src, metrics: met, rules: rs, events: es, subscriptions: ss, ingest: ig, evaluate: ev, logger: l}
+	return &Server{sources: src, metrics: met, rules: rs, events: es, subscriptions: ss, ingest: ig, evaluate: ev, decoders: protocol.NewRegistry(), logger: l}
 }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -189,11 +190,12 @@ func (s *Server) telemetryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var v metric.Sample
-	if strings.Contains(r.Header.Get("Content-Type"), "text/plain") {
-		v, e = protocolTextDecoder.TextDecoder{}.Decode(body)
-	} else {
-		v, e = protocolTextDecoder.JSONDecoder{}.Decode(body)
+	decoder, err := s.decoders.Decoder(r.Header.Get("Content-Type"))
+	if err != nil {
+		fail(w, err)
+		return
 	}
+	v, e = decoder.Decode(body)
 	if e != nil {
 		fail(w, e)
 		return
@@ -208,29 +210,6 @@ func (s *Server) telemetryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 202, map[string]any{"sample": v, "events": events})
-}
-func protocolJSON(b []byte) (metric.Sample, error) {
-	var v metric.Sample
-	if e := json.Unmarshal(b, &v); e != nil {
-		return v, e
-	}
-	if v.Timestamp.IsZero() {
-		v.Timestamp = time.Now().UTC()
-	}
-	return v, nil
-}
-func protocolText(b []byte) (metric.Sample, error) {
-	p := strings.Split(strings.TrimSpace(string(b)), ",")
-	if len(p) < 4 {
-		return metric.Sample{}, fmt.Errorf("expected source,metric,value,timestamp")
-	}
-	v := metric.Sample{SourceID: p[0], MetricID: p[1]}
-	if _, e := fmt.Sscanf(p[2], "%f", &v.Value); e != nil {
-		return v, e
-	}
-	t, e := time.Parse(time.RFC3339, p[3])
-	v.Timestamp = t
-	return v, e
 }
 func (s *Server) ingestSample(ctx context.Context, v metric.Sample) error {
 	if e := v.Validate(); e != nil {
@@ -305,5 +284,5 @@ func write(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func fail(w http.ResponseWriter, e error) {
-	write(w, http.StatusBadRequest, map[string]string{"error": e.Error()})
+	writeError(w, e)
 }

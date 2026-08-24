@@ -2,10 +2,13 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/example/telemetry-rule-service/internal/domain/metric"
 	"time"
 )
+
+var ErrDuplicateSample = errors.New("duplicate sample")
 
 type Pipeline struct {
 	service   *Service
@@ -20,13 +23,13 @@ func NewPipeline(service *Service, validator Validator, dedup *Dedup) *Pipeline 
 func (p *Pipeline) Process(ctx context.Context, value metric.Sample) error {
 	value = Normalize(value)
 	if err := p.validator.Validate(value, time.Now().UTC()); err != nil {
-			return fmt.Errorf("validate sample: %v", err)
+		return fmt.Errorf("validate sample: %w", err)
 	}
 	if p.dedup != nil && !p.dedup.Accept(value, time.Now().UTC()) {
-		return fmt.Errorf("duplicate sample")
+		return ErrDuplicateSample
 	}
 	if err := p.service.repo.Record(ctx, value); err != nil {
-		return fmt.Errorf("persist sample: %v", err)
+		return fmt.Errorf("persist sample: %w", err)
 	}
 	return nil
 }
@@ -36,7 +39,7 @@ func (p *Pipeline) ProcessMany(ctx context.Context, values []metric.Sample) (Bat
 	for index, value := range values {
 		if err := p.Process(ctx, value); err != nil {
 			result.Rejected++
-			result.Errors = append(result.Errors, fmt.Sprintf("%d: %v", index, err))
+			result.Errors = append(result.Errors, BatchError{Index: index, Error: err.Error()})
 			continue
 		}
 		result.Accepted++

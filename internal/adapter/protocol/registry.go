@@ -31,7 +31,7 @@ func (r *Registry) Decoder(contentType string) (Decoder, error) {
 	contentType = normalizeContentType(contentType)
 	decoder, exists := r.decoders[contentType]
 	if !exists {
-		return nil, fmt.Errorf("unsupported content type %q", contentType)
+		return nil, fmt.Errorf("%w: %q", ErrUnsupportedContentType, contentType)
 	}
 	return decoder, nil
 }
@@ -43,7 +43,7 @@ func (r *Registry) Decode(contentType string, body []byte) (interface{}, error) 
 	}
 	value, err := decoder.Decode(body)
 	if err != nil {
-		return nil, fmt.Errorf("decode %s: %v", contentType, err)
+		return nil, fmt.Errorf("decode %s: %w", contentType, err)
 	}
 	return value, nil
 }

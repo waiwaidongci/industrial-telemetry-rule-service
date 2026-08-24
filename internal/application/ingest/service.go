@@ -46,7 +46,7 @@ func (s *Service) IngestText(ctx context.Context, body string) (metric.Sample, e
 	if t, err := time.Parse(time.RFC3339, strings.TrimSpace(parts[3])); err == nil {
 		v.Timestamp = t
 	} else {
-		return v, fmt.Errorf("invalid timestamp")
+		return v, fmt.Errorf("invalid timestamp: %w", err)
 	}
 	if err := v.Validate(); err != nil {
 		return v, err
