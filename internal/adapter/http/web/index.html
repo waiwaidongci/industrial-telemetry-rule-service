@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Telemetry Operations</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Industrial telemetry</p>
+      <h1>Rule operations</h1>
+    </div>
+    <div class="status" aria-live="polite">
+      <span id="health-dot" class="status-dot"></span>
+      <span id="health-label">Checking service</span>
+      <button id="refresh" class="icon-button" type="button" title="Refresh data" aria-label="Refresh data">↻</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="summary" aria-label="System summary">
+      <div><span>Sources</span><strong id="source-count">0</strong></div>
+      <div><span>Metrics</span><strong id="metric-count">0</strong></div>
+      <div><span>Active rules</span><strong id="rule-count">0</strong></div>
+      <div><span>Open events</span><strong id="event-count">0</strong></div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel stream-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Current state</p>
+            <h2>Recent events</h2>
+          </div>
+          <select id="event-filter" aria-label="Filter events by status">
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Rule</th><th>Source / metric</th><th>Status</th><th>Observed</th></tr></thead>
+            <tbody id="events-body"></tbody>
+          </table>
+          <p id="events-empty" class="empty">No events match this view.</p>
+        </div>
+      </section>
+
+      <aside class="panel ingest-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Live check</p>
+            <h2>Submit a sample</h2>
+          </div>
+        </div>
+        <form id="sample-form">
+          <label>Source<select id="source-select" required></select></label>
+          <label>Metric<select id="metric-select" required></select></label>
+          <label>Value<input id="sample-value" type="number" step="any" required></label>
+          <button class="primary" type="submit">Send sample</button>
+        </form>
+        <div id="sample-result" class="result" aria-live="polite">Ready for a sample.</div>
+      </aside>
+    </div>
+
+    <section class="panel rules-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Evaluation policy</p>
+          <h2>Rules</h2>
+        </div>
+      </div>
+      <div id="rules-grid" class="rules-grid"></div>
+    </section>
+  </main>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
