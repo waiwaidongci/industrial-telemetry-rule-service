@@ -41,9 +41,10 @@ func (f Filter) Match(e Event) bool {
 }
 
 func (f Filter) Apply(values []Event) []Event {
-	result := values[:0]
+	result := make([]Event, 0, len(values))
 	for _, value := range values {
 		if f.Match(value) {
+			value.Labels = cloneLabels(value.Labels)
 			result = append(result, value)
 		}
 	}

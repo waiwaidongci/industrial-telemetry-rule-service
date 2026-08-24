@@ -15,9 +15,11 @@ type Statistics struct {
 }
 
 func BuildStatistics(values []Event) Statistics {
-	sort.Slice(values, func(i, j int) bool { return values[i].FirstSeen.Before(values[j].FirstSeen) })
-	result := Statistics{Total: len(values)}
-	for _, value := range values {
+	ordered := make([]Event, len(values))
+	copy(ordered, values)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].FirstSeen.Before(ordered[j].FirstSeen) })
+	result := Statistics{Total: len(ordered)}
+	for _, value := range ordered {
 		switch value.Status {
 		case Open:
 			result.Open++
@@ -53,9 +55,10 @@ func CountByMetric(values []Event) map[string]int {
 }
 
 func Active(values []Event) []Event {
-	result := values[:0]
+	result := make([]Event, 0, len(values))
 	for _, value := range values {
 		if value.IsActive() {
+			value.Labels = cloneLabels(value.Labels)
 			result = append(result, value)
 		}
 	}

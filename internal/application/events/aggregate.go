@@ -21,10 +21,11 @@ func Aggregate(values []event.Event) []event.Event {
 	groups := map[string]event.Event{}
 	for _, value := range values {
 		key := event.GroupKey(value)
+		current := copyEvent(value)
 		if old, ok := groups[key]; ok {
-			groups[key] = event.Merge(old, value)
+			groups[key] = event.Merge(old, current)
 		} else {
-			groups[key] = value
+			groups[key] = current
 		}
 	}
 	out := make([]event.Event, 0, len(groups))
@@ -38,7 +39,7 @@ func Within(values []event.Event, start, end time.Time) []event.Event {
 	out := []event.Event{}
 	for _, value := range values {
 		if !value.LastSeen.Before(start) && !value.LastSeen.After(end) {
-			out = append(out, value)
+			out = append(out, copyEvent(value))
 		}
 	}
 	return out

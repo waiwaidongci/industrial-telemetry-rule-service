@@ -22,13 +22,19 @@ func Merge(a, b Event) Event {
 	if a.Message == "" {
 		a.Message = b.Message
 	}
-	if a.Labels == nil {
-		a.Labels = make(map[string]string)
+	merged := make(map[string]string, len(a.Labels)+len(b.Labels))
+	for key, value := range a.Labels {
+		merged[key] = value
 	}
 	for key, value := range b.Labels {
-		if _, exists := a.Labels[key]; !exists {
-			a.Labels[key] = value
+		if _, exists := merged[key]; !exists {
+			merged[key] = value
 		}
+	}
+	if len(merged) > 0 {
+		a.Labels = merged
+	} else {
+		a.Labels = nil
 	}
 	return a
 }

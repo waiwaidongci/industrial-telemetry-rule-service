@@ -43,7 +43,7 @@ func ApplyQuery(values []event.Event, query Query) []event.Event {
 	result := make([]event.Event, 0, len(values))
 	for _, value := range values {
 		if query.Match(value) {
-			result = append(result, value)
+			result = append(result, copyEvent(value))
 		}
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -58,13 +58,21 @@ func ApplyQuery(values []event.Event, query Query) []event.Event {
 func Search(values []event.Event, phrase string) []event.Event {
 	phrase = strings.ToLower(strings.TrimSpace(phrase))
 	if phrase == "" {
-		return values
+		return copyEvents(values)
 	}
-	result := values[:0]
+	result := make([]event.Event, 0, len(values))
 	for _, value := range values {
 		if strings.Contains(strings.ToLower(value.Message), phrase) {
-			result = append(result, value)
+			result = append(result, copyEvent(value))
 		}
 	}
 	return result
+}
+
+func copyEvents(values []event.Event) []event.Event {
+	out := make([]event.Event, len(values))
+	for i, value := range values {
+		out[i] = copyEvent(value)
+	}
+	return out
 }
